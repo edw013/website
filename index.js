@@ -1,7 +1,7 @@
 "use strict";
 
 const express = require("express");
-const mongodb = requrie("mongodb");
+const mongodb = require("mongodb");
 
 const dbUrl = process.env.MONGODB_URI;
 const MongoClient = mongodb.MongoClient;
