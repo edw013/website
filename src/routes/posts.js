@@ -38,7 +38,7 @@ router.get("/", async (req, res) => {
         { $sort: sort }
     ]).toArray();
 
-    res.status(200).send(posts);
+    res.status(200).send({ posts: posts });
 });
 
 /**
