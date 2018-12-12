@@ -17,13 +17,26 @@ const validator = require("validator");
  */
 router.get("/", async (req, res) => {
     let find = {};
+    let project = {
+        _id: 0,
+        title: 1,
+        body: 1,
+        date: 1,
+        numComments: {
+            $size: "$comments"
+        }
+    };
     let sort = {
-        date: 1
-    }
+        date: -1
+    };
 
     const db = req.app.locals.db;
     const postCollection = db.collection("posts");
-    const posts = await postCollection.find(find).sort(sort).toArray();
+    const posts = await postCollection.aggregate([
+        { $match: find },
+        { $project: project},
+        { $sort: sort }
+    ]).toArray();
 
     res.status(200).send(posts);
 });
