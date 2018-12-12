@@ -2,6 +2,7 @@
 
 const express = require("express");
 const mongodb = require("mongodb");
+const cors = require("cors");
 
 const dbUrl = process.env.MONGODB_URI;
 const MongoClient = mongodb.MongoClient;
@@ -9,6 +10,8 @@ const client = new MongoClient(dbUrl, { useNewUrlParser: true });
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+app.use(cors({ credentials: true, origin: true }));
 
 client.connect(err => {
     if (err) {

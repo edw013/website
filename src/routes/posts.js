@@ -5,6 +5,7 @@ const router = express.Router();
 const bodyParser = require("body-parser");
 const jsonParser = bodyParser.json();
 const validator = require("validator");
+const ObjectId = require("mongodb").ObjectID;
 
 /**
  * List all posts. Default order by date.
@@ -16,9 +17,9 @@ const validator = require("validator");
  *   200: success
  */
 router.get("/", async (req, res) => {
-    let find = {};
-    let project = {
-        _id: 0,
+    const find = {};
+    const project = {
+        _id: 1,
         title: 1,
         body: 1,
         date: 1,
@@ -26,7 +27,7 @@ router.get("/", async (req, res) => {
             $size: "$comments"
         }
     };
-    let sort = {
+    const sort = {
         date: -1
     };
 
@@ -42,6 +43,34 @@ router.get("/", async (req, res) => {
 });
 
 /**
+ * Get a specific post.
+ * 
+ * Request parameters:
+ *   id: the object ID within Mongo
+ * 
+ * Response codes:
+ *   404: not found
+ *   200: success
+ */
+router.get("/:id", async (req, res) => {
+    const postId = validator.escape(req.params["id"]);
+
+    const find = {
+        _id: new ObjectId(postId)
+    };
+
+    const db = req.app.locals.db;
+    const postCollection = db.collection("posts");
+    const post = await postCollection.findOne(find);
+
+    if (post === null) {
+        res.sendStatus(404);
+    }
+
+    res.status(200).send(post);
+})
+
+/**
  * Create a new post.
  * 
  * Request body JSON:
@@ -54,8 +83,8 @@ router.get("/", async (req, res) => {
  *   201: created
  */
 router.post("/new", jsonParser, async (req, res) => {
-    let title = validator.escape(req.body["title"]);
-    let body = validator.escape(req.body["body"]);
+    const title = validator.escape(req.body["title"]);
+    const body = validator.escape(req.body["body"]);
     
     if (!title || !body) {
         res.sendStatus(400);
@@ -63,15 +92,15 @@ router.post("/new", jsonParser, async (req, res) => {
         return;
     }
 
-    let date = new Date();
+    const date = new Date();
 
-    let data = {
+    const data = {
         title: title,
         body: body,
         date: date,
         comments: []
     }
-
+    
     const db = req.app.locals.db;
     const postCollection = db.collection("posts");
     postCollection.insertOne(data, err => {
