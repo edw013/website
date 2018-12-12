@@ -49,14 +49,25 @@ router.get("/", async (req, res) => {
  *   id: the object ID within Mongo
  * 
  * Response codes:
+ *   400: invalid id format
  *   404: not found
  *   200: success
  */
 router.get("/:id", async (req, res) => {
     const postId = validator.escape(req.params["id"]);
 
+    let oid;
+    try {
+        oid = new ObjectId(postId);
+    }
+    catch (err) {
+        console.error(err);
+
+        return res.sendStatus(400)
+    }
+
     const find = {
-        _id: new ObjectId(postId)
+        _id: oid
     };
 
     const db = req.app.locals.db;
@@ -64,7 +75,7 @@ router.get("/:id", async (req, res) => {
     const post = await postCollection.findOne(find);
 
     if (post === null) {
-        res.sendStatus(404);
+        return res.sendStatus(404);
     }
 
     res.status(200).send(post);
