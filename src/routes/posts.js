@@ -15,6 +15,7 @@ const ObjectId = require("mongodb").ObjectID;
  * 
  * Response codes:
  *   200: success
+ *   500: server error
  */
 router.get("/", async (req, res) => {
     const find = {};
@@ -24,9 +25,16 @@ router.get("/", async (req, res) => {
 
     const db = req.app.locals.db;
     const postCollection = db.collection("posts");
-    const posts = await postCollection.find(find).sort(sort).toArray();
+    try {
+        const posts = await postCollection.find(find).sort(sort).toArray();
 
-    res.status(200).send({ posts: posts });
+        res.status(200).send({ posts: posts });
+    }
+    catch (err) {
+        console.error(err);
+
+        res.sendStatus(500);
+    }
 });
 
 /**
@@ -39,8 +47,9 @@ router.get("/", async (req, res) => {
  *   200: success
  *   400: invalid id format
  *   404: not found
+ *   500: server error
  */
-router.get("/:id", async (req, res) => {
+router.get("/:id", (req, res) => {
     const postId = validator.escape(req.params["id"]);
 
     const oid = createObjectId(postId);
@@ -55,14 +64,19 @@ router.get("/:id", async (req, res) => {
 
     const db = req.app.locals.db;
     const postCollection = db.collection("posts");
-    const post = await postCollection.findOne(find);
+    postCollection.findOne(find, (err, result) => {
+        if (err) {
+            console.error(err);
 
-    // does it exist?
-    if (post === null) {
-        return res.sendStatus(404);
-    }
+            return res.sendStatus(500);
+        }
 
-    res.status(200).send(post);
+        if (result === null) {
+            return res.sendStatus(404);
+        }
+
+        res.status(200).send(result);
+    });
 });
 
 /**
@@ -72,7 +86,8 @@ router.get("/:id", async (req, res) => {
  *   id: the object ID within Mongo
  * 
  * Response codes:
- *   200: success 
+ *   200: success
+ *   500: server error
  */
 router.get("/:id/comments", async (req, res) => {
     const postId = validator.escape(req.params["id"]);
@@ -93,9 +108,17 @@ router.get("/:id/comments", async (req, res) => {
 
     const db = req.app.locals.db;
     const commentCollection = db.collection("comments");
-    const comments = await commentCollection.find(find).sort(sort).toArray();
     
-    res.status(200).send({ comments: comments });
+    try {
+        const comments = await commentCollection.find(find).sort(sort).toArray();
+        
+        res.status(200).send({ comments: comments });
+    }
+    catch (err) {
+        console.error(err);
+
+        res.sendStatus(500);
+    }
 });
 
 /**
@@ -130,46 +153,59 @@ router.post("/:id/comments/new", jsonParser, async (req, res) => {
     const postCollection = db.collection("posts");
 
     // check if post exists first
-    const post = await postCollection.findOne(findPost);
-
-    if (post === null) {
-        return res.sendStatus(404);
-    }
-
-    // get comment body
-    const body = validator.escape(req.body["body"]);
-    
-    if (!body) {
-        res.sendStatus(400);
-
-        return;
-    }
-
-    const date = new Date();
-
-    const data = {
-        pid: oid,
-        date: date,
-        lastUpdate: date,
-        body: body
-    };
-
-    const commentCollection = db.collection("comments");
-    commentCollection.insertOne(data, async err => {
+    postCollection.findOne(find, (err, result) => {
         if (err) {
             console.error(err);
 
             return res.sendStatus(500);
         }
 
-        const inc = {
-            $inc: { numComments: 1 }
-        };
-    
-        // increment numComments
-        await postCollection.updateOne(findPost, inc);
+        if (result === null) {
+            return res.sendStatus(404);
+        }
 
-        res.sendStatus(201);
+        // get comment body
+        const body = validator.escape(req.body["body"]);
+        
+        if (!body) {
+            res.sendStatus(400);
+
+            return;
+        }
+
+        const date = new Date();
+
+        const data = {
+            pid: oid,
+            date: date,
+            lastUpdate: date,
+            body: body
+        };
+
+        const commentCollection = db.collection("comments");
+        commentCollection.insertOne(data, err => {
+            if (err) {
+                console.error(err);
+
+                return res.sendStatus(500);
+            }
+
+            const inc = {
+                $inc: { numComments: 1 }
+            };
+        
+            // increment numComments
+            postCollection.updateOne(findPost, inc, err => {
+                if (err) {
+                    console.error(err);
+
+                    // err this also means comment count will be off dunno what to do
+                    return res.sendStatus(500);
+                }
+
+                res.sendStatus(201);
+            });
+        });
     });
 });
 
