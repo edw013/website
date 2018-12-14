@@ -169,7 +169,7 @@ router.post("/:id/comments/new", jsonParser, async (req, res) => {
     const postCollection = db.collection("posts");
 
     // check if post exists first
-    postCollection.findOne(find, (err, result) => {
+    postCollection.findOne(findPost, (err, result) => {
         if (err) {
             console.error(err);
 
