@@ -219,7 +219,7 @@ router.post("/:id/comments/new", jsonParser, async (req, res) => {
                     return res.status(500).send(SERVER_ERROR);
                 }
 
-                res.status(201).send(CREATED);
+                res.status(201).send({ id: data._id });
             });
         });
     });
@@ -267,7 +267,7 @@ router.post("/new", jsonParser, async (req, res) => {
             return;
         }
 
-        res.status(201).send(CREATED);
+        res.status(201).send({ id: data._id });
     });
 });
 
