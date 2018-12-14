@@ -7,6 +7,22 @@ const jsonParser = bodyParser.json();
 const validator = require("validator");
 const ObjectId = require("mongodb").ObjectID;
 
+const SERVER_ERROR = {
+    message: "Server error."
+};
+
+const MALFORMED_REQUEST = {
+    message: "Invalid request."
+};
+
+const NOT_FOUND = {
+    message: "Resource not found."
+};
+
+const CREATED = {
+    message: "Created."
+};
+
 /**
  * List all posts. Default order by date.
  * 
@@ -33,7 +49,7 @@ router.get("/", async (req, res) => {
     catch (err) {
         console.error(err);
 
-        res.sendStatus(500);
+        res.status(500).send(SERVER_ERROR);
     }
 });
 
@@ -55,7 +71,7 @@ router.get("/:id", (req, res) => {
     const oid = createObjectId(postId);
 
     if (oid === null) {
-        return res.sendStatus(400);
+        return res.status(400).send(MALFORMED_REQUEST);
     }
 
     const find = {
@@ -68,11 +84,11 @@ router.get("/:id", (req, res) => {
         if (err) {
             console.error(err);
 
-            return res.sendStatus(500);
+            return res.status(500).send(SERVER_ERROR);
         }
 
         if (result === null) {
-            return res.sendStatus(404);
+            return res.status(404).send(NOT_FOUND);
         }
 
         res.status(200).send(result);
@@ -96,7 +112,7 @@ router.get("/:id/comments", async (req, res) => {
     // just return [] if it doesn't
     const oid = createObjectId(postId);
     if (oid === null) {
-        return res.sendStatus(400);
+        return res.status(400).send(MALFORMED_REQUEST);
     }
 
     const find = {
@@ -117,7 +133,7 @@ router.get("/:id/comments", async (req, res) => {
     catch (err) {
         console.error(err);
 
-        res.sendStatus(500);
+        res.status(500).send(SERVER_ERROR);
     }
 });
 
@@ -142,7 +158,7 @@ router.post("/:id/comments/new", jsonParser, async (req, res) => {
     // check valid oid
     const oid = createObjectId(postId);
     if (oid === null) {
-        return res.sendStatus(400);
+        return res.status(400).send(MALFORMED_REQUEST);
     }
 
     const findPost = {
@@ -157,18 +173,18 @@ router.post("/:id/comments/new", jsonParser, async (req, res) => {
         if (err) {
             console.error(err);
 
-            return res.sendStatus(500);
+            return res.status(500).send(SERVER_ERROR);
         }
 
         if (result === null) {
-            return res.sendStatus(404);
+            return res.status(404).send(NOT_FOUND);
         }
 
         // get comment body
         const body = validator.escape(req.body["body"]);
         
         if (!body) {
-            res.sendStatus(400);
+            res.status(400).send(MALFORMED_REQUEST);
 
             return;
         }
@@ -187,7 +203,7 @@ router.post("/:id/comments/new", jsonParser, async (req, res) => {
             if (err) {
                 console.error(err);
 
-                return res.sendStatus(500);
+                return res.status(500).send(SERVER_ERROR);
             }
 
             const inc = {
@@ -200,10 +216,10 @@ router.post("/:id/comments/new", jsonParser, async (req, res) => {
                     console.error(err);
 
                     // err this also means comment count will be off dunno what to do
-                    return res.sendStatus(500);
+                    return res.status(500).send(SERVER_ERROR);
                 }
 
-                res.sendStatus(201);
+                res.status(201).send(CREATED);
             });
         });
     });
@@ -226,7 +242,7 @@ router.post("/new", jsonParser, async (req, res) => {
     const body = validator.escape(req.body["body"]);
     
     if (!title || !body) {
-        res.sendStatus(400);
+        res.status(400).send(MALFORMED_REQUEST);
 
         return;
     }
@@ -246,15 +262,20 @@ router.post("/new", jsonParser, async (req, res) => {
     postCollection.insertOne(data, err => {
         if (err) {
             console.error(err);
-            res.sendStatus(500);
+            res.status(500).send(SERVER_ERROR);
 
             return;
         }
 
-        res.sendStatus(201);
+        res.status(201).send(CREATED);
     });
 });
 
+/**
+ * Create an object ID object from an id.
+ * 
+ * @param {*} id The id to create from
+ */
 const createObjectId = id => {
     let oid;
     try {
