@@ -4,8 +4,6 @@ const express = require("express");
 const mongodb = require("mongodb");
 const cors = require("cors");
 
-const jwt = require('express-jwt');
-const jwks = require('jwks-rsa');
 
 const dbUrl = process.env.MONGODB_URI;
 const MongoClient = mongodb.MongoClient;

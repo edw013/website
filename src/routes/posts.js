@@ -7,6 +7,10 @@ const jsonParser = bodyParser.json();
 const validator = require("validator");
 const ObjectId = require("mongodb").ObjectID;
 
+
+const jwt = require('express-jwt');
+const jwks = require('jwks-rsa');
+
 const SERVER_ERROR = {
     message: "Server error."
 };
