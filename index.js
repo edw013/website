@@ -30,6 +30,14 @@ const jwtCheck = jwt({
 
 app.use(jwtCheck);
 
+app.use((err, req, res, next) => {
+    if (err.name === 'UnauthorizedError') {
+        res.status(401).json({
+            message: "Missing or invalid token."
+        });
+    }
+});
+
 const guard = (req, res, next) => {
     let permissions = "general";
     if (req.path === "/posts/new") {
