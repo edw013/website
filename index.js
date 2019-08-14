@@ -23,7 +23,7 @@ const jwtCheck = jwt({
         jwksRequestsPerMinute: 5,
         jwksUri: 'https://dev-2ajd1d4x.auth0.com/.well-known/jwks.json'
   }),
-  audience: 'https://ethanwang-backend.herokuapp.com/',
+  audience: 'https://ethanwang-backend.herokuapp.com/posts/new',
   issuer: 'https://dev-2ajd1d4x.auth0.com/',
   algorithms: ['RS256']
 });
@@ -39,17 +39,16 @@ app.use((err, req, res, next) => {
 });
 
 const guard = (req, res, next) => {
-    let permissions = "general";
     if (req.path === "/posts/new") {
         permissions = "admin";
-    }
-    if (req.user.scope.includes(permissions)) {
-        next();
-    }
-    else {
-        res.status(403).json({
-            message: "Forbidden."
-        });
+        if (req.user.scope.includes(permissions)) {
+            next();
+        }
+        else {
+            res.status(403).json({
+                message: "Forbidden."
+            });
+        }
     }
 }
 
