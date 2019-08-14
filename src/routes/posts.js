@@ -23,6 +23,18 @@ const CREATED = {
     message: "Created."
 };
 
+const jwtCheck = jwt({
+    secret: jwks.expressJwtSecret({
+        cache: true,
+        rateLimit: true,
+        jwksRequestsPerMinute: 5,
+        jwksUri: 'https://dev-2ajd1d4x.auth0.com/.well-known/jwks.json'
+  }),
+  audience: 'https://ethanwang-backend.herokuapp.com/posts/new',
+  issuer: 'https://dev-2ajd1d4x.auth0.com/',
+  algorithms: ['RS256']
+});
+
 /**
  * List all posts. Default order by date.
  * 
@@ -237,7 +249,7 @@ router.get("/:id", (req, res) => {
  *   400: missing title or body
  *   500: error inserting into DB
  */
-router.post("/new", jsonParser, async (req, res) => {
+router.post("/new", jwtCheck, jsonParser, async (req, res) => {
     const title = validator.escape(req.body["title"]);
     const body = validator.escape(req.body["body"]);
     

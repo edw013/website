@@ -16,7 +16,7 @@ const port = process.env.PORT || 3000;
 
 app.use(cors({ credentials: true, origin: true }));
 
-const jwtCheck = jwt({
+/*const jwtCheck = jwt({
     secret: jwks.expressJwtSecret({
         cache: true,
         rateLimit: true,
@@ -28,7 +28,7 @@ const jwtCheck = jwt({
   algorithms: ['RS256']
 });
 
-app.use(jwtCheck);
+app.use(jwtCheck);*/
 
 app.use((err, req, res, next) => {
     if (err.name === 'UnauthorizedError') {
