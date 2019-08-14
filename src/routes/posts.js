@@ -105,7 +105,7 @@ router.get("/:id", (req, res) => {
  *   200: success
  *   500: server error
  */
-router.get("/:id/comments", async (req, res) => {
+/* router.get("/:id/comments", async (req, res) => {
     const postId = validator.escape(req.params["id"]);
 
     // check valid oid, we don't really care if it doesn't exist as we'll
@@ -135,7 +135,7 @@ router.get("/:id/comments", async (req, res) => {
 
         res.status(500).send(SERVER_ERROR);
     }
-});
+}); */
 
 /**
  * Create a new comment on a post.
@@ -152,7 +152,7 @@ router.get("/:id/comments", async (req, res) => {
  *   404: post does not exist
  *   500: error inserting into DB
  */
-router.post("/:id/comments/new", jsonParser, async (req, res) => {
+/* router.post("/:id/comments/new", jsonParser, async (req, res) => {
     const postId = validator.escape(req.params["id"]);
 
     // check valid oid
@@ -223,7 +223,7 @@ router.post("/:id/comments/new", jsonParser, async (req, res) => {
             });
         });
     });
-});
+}); */
 
 /**
  * Create a new post.

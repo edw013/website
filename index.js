@@ -4,8 +4,8 @@ const express = require("express");
 const mongodb = require("mongodb");
 const cors = require("cors");
 
-var jwt = require('express-jwt');
-var jwks = require('jwks-rsa');
+const jwt = require('express-jwt');
+const jwks = require('jwks-rsa');
 
 const dbUrl = process.env.MONGODB_URI;
 const MongoClient = mongodb.MongoClient;
@@ -30,15 +30,22 @@ const jwtCheck = jwt({
 
 app.use(jwtCheck);
 
-app.get('/authorized', function (req, res) {
-  res.send('Secured Resource');
-});
-
-app.use(function (err, req, res, next) {
-    if (err.name === 'UnauthorizedError') {
-        res.status(401).json({message:'Missing or invalid token'});
+const guard = (req, res, next) => {
+    let permissions = "general";
+    if (req.path === "/posts/new") {
+        permissions = "admin";
     }
-});
+    if (req.user.scope.includes(permissions)) {
+        next();
+    }
+    else {
+        res.status(403).json({
+            message: "Forbidden."
+        });
+    }
+}
+
+app.use(guard);
 
 client.connect(err => {
     if (err) {
