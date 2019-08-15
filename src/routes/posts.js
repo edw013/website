@@ -7,9 +7,8 @@ const jsonParser = bodyParser.json();
 const validator = require("validator");
 const ObjectId = require("mongodb").ObjectID;
 
-
-const jwt = require('express-jwt');
-const jwks = require('jwks-rsa');
+const jwt = require("express-jwt");
+const jwks = require("jwks-rsa");
 
 const SERVER_ERROR = {
     message: "Server error."
@@ -39,6 +38,26 @@ const jwtCheck = jwt({
   algorithms: ['RS256']
 });
 
+const unauthorizedErr = (err, req, res, next) => {
+    if (err.name === 'UnauthorizedError') {
+        res.status(401).json({
+            message: "Missing or invalid token."
+        });
+    }
+};
+
+const checkPerms = (req, res, next) => {
+    const permissions = "admin";
+    if (req.user.scope.includes(permissions)) {
+        next();
+    }
+    else {
+        res.status(403).json({
+            message: "Forbidden."
+        });
+    }
+};
+
 /**
  * List all posts. Default order by date.
  * 
@@ -67,6 +86,61 @@ router.get("/", async (req, res) => {
 
         res.status(500).send(SERVER_ERROR);
     }
+});
+
+
+/**
+ * Create a new post.
+ * 
+ * Request body JSON:
+ *   title: the title of the post
+ *   body: the body of the post
+ * 
+ * Response codes:
+ *   201: created
+ *   400: missing title or body
+ *   500: error inserting into DB
+ */
+router.post("/new", jwtCheck, checkPerms, unauthorizedErr, jsonParser, async (req, res) => {
+    const title = validator.escape(req.body["title"]);
+    const body = validator.escape(req.body["body"]);
+    
+    if (!title || !body) {
+        res.status(400).send(MALFORMED_REQUEST);
+
+        return;
+    }
+
+    const date = new Date();
+
+    const data = {
+        title: title,
+        body: body,
+        date: date,
+        lastUpdate: date,
+        numComments: 0
+    }
+    
+    const db = req.app.locals.db;
+    const postCollection = db.collection("posts");
+    postCollection.insertOne(data, err => {
+        if (err) {
+            console.error(err);
+            res.status(500).send(SERVER_ERROR);
+
+            return;
+        }
+
+        res.status(201).send({ id: data._id });
+    });
+});
+
+/**
+ * Block get requests on new, just to avoid the parsing as
+ * /:id.
+ */
+router.get("/new", (req, res) => {
+    return res.status(400).send(MALFORMED_REQUEST);
 });
 
 /**
@@ -241,51 +315,6 @@ router.get("/:id", (req, res) => {
     });
 }); */
 
-/**
- * Create a new post.
- * 
- * Request body JSON:
- *   title: the title of the post
- *   body: the body of the post
- * 
- * Response codes:
- *   201: created
- *   400: missing title or body
- *   500: error inserting into DB
- */
-router.post("/new", jwtCheck, jsonParser, async (req, res) => {
-    const title = validator.escape(req.body["title"]);
-    const body = validator.escape(req.body["body"]);
-    
-    if (!title || !body) {
-        res.status(400).send(MALFORMED_REQUEST);
-
-        return;
-    }
-
-    const date = new Date();
-
-    const data = {
-        title: title,
-        body: body,
-        date: date,
-        lastUpdate: date,
-        numComments: 0
-    }
-    
-    const db = req.app.locals.db;
-    const postCollection = db.collection("posts");
-    postCollection.insertOne(data, err => {
-        if (err) {
-            console.error(err);
-            res.status(500).send(SERVER_ERROR);
-
-            return;
-        }
-
-        res.status(201).send({ id: data._id });
-    });
-});
 
 /**
  * Create an object ID object from an id.
