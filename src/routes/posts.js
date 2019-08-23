@@ -113,12 +113,14 @@ router.post("/new", jwtCheck, checkPerms, unauthorizedErr, jsonParser, async (re
 
     const date = new Date();
 
+    const preview = body.toString().length > 100 ? body.toString().substring(0, 300) + "..." : body.toString();
+
     const data = {
         title: title,
         body: body,
+        preview: preview,
         date: date,
         lastUpdate: date,
-        numComments: 0
     }
     
     const db = req.app.locals.db;
