@@ -70,6 +70,13 @@ const checkPerms = (req, res, next) => {
  */
 router.get("/", async (req, res) => {
     const find = {};
+
+    const filter = {
+        projection: {
+            body: 0
+        }
+    };
+    
     const sort = {
         date: -1
     };
@@ -77,7 +84,7 @@ router.get("/", async (req, res) => {
     const db = req.app.locals.db;
     const postCollection = db.collection("posts");
     try {
-        const posts = await postCollection.find(find).sort(sort).toArray();
+        const posts = await postCollection.find(find, filter).sort(sort).toArray();
 
         res.status(200).send({ posts: posts });
     }
@@ -170,9 +177,15 @@ router.get("/:id", (req, res) => {
         _id: oid
     };
 
+    const filter = {
+        projection: {
+            preview: 0
+        }
+    };
+
     const db = req.app.locals.db;
     const postCollection = db.collection("posts");
-    postCollection.findOne(find, (err, result) => {
+    postCollection.findOne(find, filter, (err, result) => {
         if (err) {
             console.error(err);
 
