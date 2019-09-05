@@ -8,7 +8,9 @@ const validator = require("validator");
 const ObjectId = require("mongodb").ObjectID;
 
 const jwt = require("express-jwt");
-const jwks = require("jwks-rsa");
+const jwtAuthz = require("express-jwt-authz");
+const jwksRsa = require("jwks-rsa");
+
 
 const SERVER_ERROR = {
     message: "Server error."
@@ -26,37 +28,32 @@ const CREATED = {
     message: "Created."
 };
 
-const jwtCheck = jwt({
-    secret: jwks.expressJwtSecret({
-        cache: true,
-        rateLimit: true,
-        jwksRequestsPerMinute: 5,
-        jwksUri: 'https://dev-2ajd1d4x.auth0.com/.well-known/jwks.json'
-  }),
-  audience: 'https://ethanwang-backend.herokuapp.com/posts/new',
-  issuer: 'https://dev-2ajd1d4x.auth0.com/',
-  algorithms: ['RS256']
-});
+const checkJwt = jwt({
+    // Dynamically provide a signing key
+    // based on the kid in the header and 
+    // the signing keys provided by the JWKS endpoint.
+    secret: jwksRsa.expressJwtSecret({
+      cache: true,
+      rateLimit: true,
+      jwksRequestsPerMinute: 5,
+      jwksUri: "https://dev-2ajd1d4x.auth0.com/.well-known/jwks.json"
+    }),
+  
+    // Validate the audience and the issuer.
+    audience: "https://ethanwang-backend.herokuapp.com/posts/new",
+    issuer: "https://dev-2ajd1d4x.auth0.com/",
+    algorithms: ["RS256"]
+  });
 
 const unauthorizedErr = (err, req, res, next) => {
-    if (err.name === 'UnauthorizedError') {
+    if (err.name === "UnauthorizedError") {
         res.status(401).json({
             message: "Missing or invalid token."
         });
     }
 };
 
-const checkPerms = (req, res, next) => {
-    const permissions = "admin";
-    if (req.user.scope.includes(permissions)) {
-        next();
-    }
-    else {
-        res.status(403).json({
-            message: "Forbidden."
-        });
-    }
-};
+const checkScopes = jwtAuthz(["write:posts"]);
 
 /**
  * List all posts. Default order by date.
@@ -76,7 +73,7 @@ router.get("/", async (req, res) => {
             body: 0
         }
     };
-    
+
     const sort = {
         date: -1
     };
@@ -108,7 +105,7 @@ router.get("/", async (req, res) => {
  *   400: missing title or body
  *   500: error inserting into DB
  */
-router.post("/new", jwtCheck, checkPerms, unauthorizedErr, jsonParser, async (req, res) => {
+router.post("/new", unauthorizedErr, checkJwt, checkScopes, jsonParser, async (req, res) => {
     const title = validator.escape(req.body["title"]);
     const body = validator.escape(req.body["body"]);
     
